@@ -166,6 +166,7 @@ export default function ChatScreen() {
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
     const isDark = useColorScheme() === 'dark';
+    const tintColor = Colors[useColorScheme() ?? 'light'].tint;
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor }}>
@@ -174,14 +175,56 @@ export default function ChatScreen() {
                 padding: 16,
                 paddingBottom: 0
             }}>
-                <Text style={{ 
-                    fontSize: 28,
-                    fontWeight: '700',
-                    color: textColor,
+                {/* Title & Notification Button */}
+                <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     marginBottom: 16
                 }}>
-                    Messages
-                </Text>
+                    <Text style={{ 
+                        fontSize: 28,
+                        fontWeight: '700',
+                        color: textColor,
+                    }}>
+                        Messages
+                    </Text>
+                    
+                    {/* Notification Button */}
+                    <Pressable 
+                        onPress={() => console.log('Notification pressed')}
+                        style={({ pressed }) => ({
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: pressed 
+                                ? (isDark ? '#ffffff15' : '#00000010')
+                                : (isDark ? '#ffffff10' : '#00000008'),
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                        })}
+                    >
+                        <Ionicons 
+                            name="notifications-outline" 
+                            size={22} 
+                            color={textColor} 
+                        />
+                        
+                        {/* Notification Badge */}
+                        <View style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: tintColor,
+                            borderWidth: 1.5,
+                            borderColor: backgroundColor
+                        }} />
+                    </Pressable>
+                </View>
 
                 {/* Search Bar */}
                 <View style={{
