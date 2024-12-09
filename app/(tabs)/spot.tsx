@@ -15,6 +15,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import * as Location from 'expo-location';
+import { useTheme } from '@/context/ThemeContext';
 
 // Dummy data spots
 const SPOTS = [
@@ -98,11 +99,21 @@ export default function SpotScreen() {
     const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
     const mapRef = useRef<MapView>(null);
     const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
+    const [showMap, setShowMap] = useState(true);
     
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
-    const isDark = useColorScheme() === 'dark';
+    const { isDark } = useTheme();
     const tintColor = Colors[useColorScheme() ?? 'light'].tint;
+
+    useEffect(() => {
+        setShowMap(false);
+        const timer = setTimeout(() => {
+            setShowMap(true);
+        }, 100);
+        
+        return () => clearTimeout(timer);
+    }, [isDark]);
 
     useEffect(() => {
         (async () => {
@@ -157,45 +168,48 @@ export default function SpotScreen() {
 
     return (
         <View style={styles.container}>
-            <MapView
-                ref={mapRef}
-                style={styles.map}
-                initialRegion={{
-                    latitude: -6.2088,
-                    longitude: 106.8456,
-                    latitudeDelta: 0.02,
-                    longitudeDelta: 0.02
-                }}
-            >
-                {currentLocation && (
-                    <Marker
-                        coordinate={{
-                            latitude: currentLocation.coords.latitude,
-                            longitude: currentLocation.coords.longitude
-                        }}
-                    >
-                        <View style={styles.currentLocationMarker}>
-                            <View style={styles.currentLocationDot} />
-                            <View style={styles.currentLocationRing} />
-                        </View>
-                    </Marker>
-                )}
+            {showMap && (
+                <MapView
+                    ref={mapRef}
+                    style={styles.map}
+                    userInterfaceStyle={isDark ? 'dark' : 'light'}
+                    initialRegion={{
+                        latitude: -6.2088,
+                        longitude: 106.8456,
+                        latitudeDelta: 0.02,
+                        longitudeDelta: 0.02
+                    }}
+                >
+                    {currentLocation && (
+                        <Marker
+                            coordinate={{
+                                latitude: currentLocation.coords.latitude,
+                                longitude: currentLocation.coords.longitude
+                            }}
+                        >
+                            <View style={styles.currentLocationMarker}>
+                                <View style={styles.currentLocationDot} />
+                                <View style={styles.currentLocationRing} />
+                            </View>
+                        </Marker>
+                    )}
 
-                {SPOTS.map(spot => (
-                    <Marker
-                        key={spot.id}
-                        coordinate={spot.coordinate}
-                        onPress={() => handleSpotPress(spot.id)}
-                    >
-                        <View style={styles.markerContainer}>
-                            <Image 
-                                source={{ uri: spot.profilePic }}
-                                style={styles.markerImage}
-                            />
-                        </View>
-                    </Marker>
-                ))}
-            </MapView>
+                    {SPOTS.map(spot => (
+                        <Marker
+                            key={spot.id}
+                            coordinate={spot.coordinate}
+                            onPress={() => handleSpotPress(spot.id)}
+                        >
+                            <View style={styles.markerContainer}>
+                                <Image 
+                                    source={{ uri: spot.profilePic }}
+                                    style={styles.markerImage}
+                                />
+                            </View>
+                        </Marker>
+                    ))}
+                </MapView>
+            )}
 
             {/* My Location Button */}
             <Pressable 

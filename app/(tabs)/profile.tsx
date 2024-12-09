@@ -1,10 +1,11 @@
-import { View, Text, Image, ScrollView, Pressable, SafeAreaView } from "react-native";
+import { View, Text, Image, ScrollView, Pressable, SafeAreaView, Switch } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 type MenuItemProps = {
     icon: keyof typeof Ionicons.glyphMap;
@@ -13,15 +14,27 @@ type MenuItemProps = {
     onPress?: () => void;
     showArrow?: boolean;
     isDanger?: boolean;
+    isSwitch?: boolean;
+    value?: boolean;
 }
 
-function MenuItem({ icon, label, description, onPress, showArrow = true, isDanger = false }: MenuItemProps) {
+function MenuItem({ 
+    icon, 
+    label, 
+    description, 
+    onPress, 
+    showArrow = true, 
+    isDanger = false,
+    isSwitch = false,
+    value
+}: MenuItemProps) {
     const textColor = useThemeColor({}, 'text');
     const iconColor = useThemeColor({}, 'icon');
+    const tintColor = Colors[useColorScheme() ?? 'light'].tint;
     
     return (
         <Pressable 
-            onPress={onPress}
+            onPress={!isSwitch ? onPress : undefined}
             style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -64,7 +77,18 @@ function MenuItem({ icon, label, description, onPress, showArrow = true, isDange
                     </Text>
                 )}
             </View>
-            {showArrow && (
+            {isSwitch ? (
+                <Switch 
+                    value={value}
+                    onValueChange={onPress}
+                    trackColor={{ 
+                        false: '#767577', 
+                        true: `${tintColor}80` 
+                    }}
+                    thumbColor={value ? tintColor : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
+                />
+            ) : showArrow && (
                 <Ionicons name="chevron-forward" size={20} color={iconColor} />
             )}
         </Pressable>
@@ -75,6 +99,7 @@ export default function ProfileScreen() {
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
     const tintColor = Colors[useColorScheme() ?? 'light'].tint;
+    const { isDark, toggleTheme } = useDarkMode();
 
     const handleLogout = () => {
         console.log('Logging out...');
@@ -109,12 +134,12 @@ export default function ProfileScreen() {
                         fontWeight: '700', 
                         color: textColor,
                         marginBottom: 4
-                    }}>John Doe</Text>
+                    }}>Arunika AI</Text>
                     <Text style={{ 
                         color: textColor, 
                         opacity: 0.7,
                         fontSize: 15
-                    }}>john.doe@example.com</Text>
+                    }}>arunika@ai.com</Text>
                 </View>
 
                 {/* Account Settings */}
@@ -151,6 +176,14 @@ export default function ProfileScreen() {
                         marginBottom: 8,
                         textTransform: 'uppercase'
                     }}>Preferences</Text>
+                    <MenuItem 
+                        icon={isDark ? "moon" : "sunny"} 
+                        label="Dark Mode"
+                        description="Ubah tampilan ke mode gelap"
+                        isSwitch={true}
+                        value={isDark}
+                        onPress={toggleTheme}
+                    />
                     <MenuItem 
                         icon="notifications" 
                         label="Notifications" 
