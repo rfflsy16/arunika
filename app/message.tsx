@@ -11,13 +11,15 @@ import {
     Image,
     Animated,
     Dimensions,
-    Keyboard
+    Keyboard,
+    KeyboardEvent
 } from "react-native";
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Stack } from 'expo-router';
 
 // Dummy messages utk testing
 const MESSAGES = [
@@ -169,7 +171,11 @@ export default function MessageScreen() {
 
     // Tambahin ref buat keyboard height
     const [keyboardHeight, setKeyboardHeight] = useState(0);
-    const [inputHeight, setInputHeight] = useState(0);
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+    // Tambahin state utk popup menu
+    const [showAttachMenu, setShowAttachMenu] = useState(false);
+    const attachMenuAnim = useRef(new Animated.Value(0)).current;
 
     // Load chat history safely
     useEffect(() => {
@@ -228,30 +234,65 @@ export default function MessageScreen() {
         }
     };
 
-    // Handle keyboard show/hide
+    // Handle keyboard events
     useEffect(() => {
-        const keyboardWillShow = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-            (e) => {
-                setKeyboardHeight(e.endCoordinates.height);
-                if (flatListRef.current) {
-                    flatListRef.current.scrollToEnd({ animated: true });
-                }
-            }
-        );
+        const keyboardWillShow = (e: KeyboardEvent) => {
+            setIsKeyboardVisible(true);
+            setKeyboardHeight(e.endCoordinates.height);
+            
+            // Delay scroll sedikit biar smooth
+            setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        };
 
-        const keyboardWillHide = Keyboard.addListener(
+        const keyboardWillHide = () => {
+            setIsKeyboardVisible(false);
+            setKeyboardHeight(0);
+        };
+
+        // Subscribe ke event keyboard
+        const showSubscription = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+            keyboardWillShow
+        );
+        const hideSubscription = Keyboard.addListener(
             Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-            () => {
-                setKeyboardHeight(0);
-            }
+            keyboardWillHide
         );
 
         return () => {
-            keyboardWillShow.remove();
-            keyboardWillHide.remove();
+            showSubscription.remove();
+            hideSubscription.remove();
         };
     }, []);
+
+    // Auto scroll pas content berubah
+    const handleContentSizeChange = () => {
+        if (isKeyboardVisible) {
+            flatListRef.current?.scrollToEnd({ animated: true });
+        }
+    };
+
+    // Tambahin fungsi utk show/hide menu
+    const toggleAttachMenu = () => {
+        if (showAttachMenu) {
+            Animated.spring(attachMenuAnim, {
+                toValue: 0,
+                useNativeDriver: true,
+                tension: 65,
+                friction: 5
+            }).start(() => setShowAttachMenu(false));
+        } else {
+            setShowAttachMenu(true);
+            Animated.spring(attachMenuAnim, {
+                toValue: 1,
+                useNativeDriver: true,
+                tension: 40,
+                friction: 6
+            }).start();
+        }
+    };
 
     if (isLoading) {
         return (
@@ -264,188 +305,475 @@ export default function MessageScreen() {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor }}>
-            {/* Header */}
-            <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: isDark ? '#ffffff10' : '#00000010'
-            }}>
-                <Pressable 
-                    onPress={() => router.back()}
-                    style={({ pressed }) => ({
-                        opacity: pressed ? 0.7 : 1,
-                        padding: 4
-                    })}
-                >
-                    <Ionicons 
-                        name="chevron-back" 
-                        size={24} 
-                        color={textColor} 
-                    />
-                </Pressable>
-                
-                <Image 
-                    source={{ uri: params.avatar as string }} 
-                    style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        marginHorizontal: 12
-                    }}
-                />
-                
-                <View style={{ flex: 1 }}>
-                    <Text style={{
-                        fontSize: 18,
-                        fontWeight: '600',
-                        color: textColor
-                    }}>
-                        {params.name}
-                    </Text>
-                    <Text style={{
-                        fontSize: 14,
-                        color: textColor,
-                        opacity: 0.6
-                    }}>
-                        Online
-                    </Text>
-                </View>
+        <>
+            {/* Custom Header */}
+            <Stack.Screen
+                options={{
+                    headerShown: false // Hide default header
+                }}
+            />
 
-                <Pressable 
-                    style={({ pressed }) => ({
-                        opacity: pressed ? 0.7 : 1,
-                        padding: 4
-                    })}
-                >
-                    <Ionicons 
-                        name="ellipsis-vertical" 
-                        size={24} 
-                        color={textColor} 
-                    />
-                </Pressable>
-            </View>
-
-            {/* Wrap content dalam KeyboardAvoidingView */}
-            <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-            >
-                <View style={{ flex: 1 }}>
-                    {/* Chat Messages */}
-                    <FlatList
-                        ref={flatListRef}
-                        data={chatHistory}
-                        keyExtractor={item => item.id}
-                        renderItem={({ item }) => (
-                            <MessageItem 
-                                item={item} 
-                                textColor={textColor}
-                                tintColor={tintColor}
-                                isDark={isDark}
-                            />
-                        )}
-                        contentContainerStyle={{ 
-                            paddingVertical: 16,
-                            flexGrow: 1,
-                            justifyContent: chatHistory.length === 0 ? 'center' : 'flex-start'
-                        }}
-                        showsVerticalScrollIndicator={false}
-                        onLayout={() => {
-                            if (chatHistory.length > 0 && flatListRef.current) {
-                                flatListRef.current.scrollToEnd({ animated: false });
-                            }
-                        }}
-                        ListEmptyComponent={() => (
-                            <View style={{ 
-                                flex: 1, 
-                                justifyContent: 'center', 
-                                alignItems: 'center',
-                                opacity: 0.5
-                            }}>
-                                <Text style={{ color: textColor }}>No messages yet</Text>
-                            </View>
-                        )}
-                    />
-
-                    {/* Message Input */}
-                    <View style={{
-                        flexDirection: 'row',
-                        alignItems: 'flex-end', // Changed from center
-                        padding: 16,
-                        gap: 12,
-                        borderTopWidth: 1,
-                        borderTopColor: isDark ? '#ffffff10' : '#00000010',
-                        paddingBottom: Platform.OS === 'android' ? keyboardHeight : 16 // Add padding for Android
-                    }}>
-                        <View style={{
+            <SafeAreaView style={{ flex: 1, backgroundColor }}>
+                {/* Custom Header */}
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDark ? '#ffffff10' : '#00000010',
+                    backgroundColor: backgroundColor
+                }}>
+                    {/* Back Button */}
+                    <Pressable 
+                        onPress={() => router.back()}
+                        style={({ pressed }) => ({
+                            opacity: pressed ? 0.7 : 1,
+                            padding: 8,
+                            marginLeft: -8
+                        })}
+                    >
+                        <Ionicons 
+                            name="chevron-back" 
+                            size={28} 
+                            color={textColor} 
+                        />
+                    </Pressable>
+                    
+                    {/* Profile Info */}
+                    <Pressable 
+                        style={({ pressed }) => ({
                             flex: 1,
                             flexDirection: 'row',
-                            alignItems: 'flex-end', // Changed from center
-                            backgroundColor: isDark ? '#ffffff15' : '#00000008',
-                            borderRadius: 24,
-                            paddingHorizontal: 16,
-                            paddingVertical: 8,
-                            minHeight: 44,
-                            maxHeight: 120 // Limit max height
-                        }}>
-                            <TextInput
-                                value={message}
-                                onChangeText={setMessage}
-                                placeholder="Type a message..."
-                                placeholderTextColor={isDark ? '#ffffff50' : '#00000050'}
-                                style={{
-                                    flex: 1,
-                                    color: isDark ? '#ffffffee' : '#000000ee',
-                                    fontSize: 16,
-                                    maxHeight: 100,
-                                    paddingTop: 8,
-                                    paddingBottom: 8,
-                                    textAlignVertical: 'center'
-                                }}
-                                multiline
-                                maxLength={1000}
-                                onContentSizeChange={(e) => {
-                                    const height = e.nativeEvent.contentSize.height;
-                                    setInputHeight(height);
-                                    // Auto scroll when input grows
-                                    if (flatListRef.current) {
-                                        flatListRef.current.scrollToEnd({ animated: true });
-                                    }
-                                }}
-                            />
-                        </View>
-
-                        <Pressable 
-                            onPress={handleSend}
-                            style={({ pressed }) => ({
-                                opacity: message.trim() ? (pressed ? 0.7 : 1) : 0.5,
-                                padding: 8,
-                                backgroundColor: message.trim() 
-                                    ? isDark 
-                                        ? '#2196F3' 
-                                        : tintColor 
-                                    : isDark 
-                                        ? '#ffffff20' 
-                                        : '#00000020',
+                            alignItems: 'center',
+                            marginLeft: 4,
+                            opacity: pressed ? 0.7 : 1
+                        })}
+                        onPress={() => {
+                            // Nanti bisa navigate ke profile
+                            console.log('View profile');
+                        }}
+                    >
+                        <Image 
+                            source={{ uri: params.avatar as string }} 
+                            style={{
+                                width: 40,
+                                height: 40,
                                 borderRadius: 20,
-                                alignSelf: 'flex-end', // Align with input
+                                marginRight: 12
+                            }}
+                        />
+                        
+                        <View style={{ flex: 1 }}>
+                            <Text style={{
+                                fontSize: 18,
+                                fontWeight: '600',
+                                color: textColor,
                                 marginBottom: 2
+                            }}>
+                                {params.name}
+                            </Text>
+                            <Text style={{
+                                fontSize: 14,
+                                color: textColor,
+                                opacity: 0.6
+                            }}>
+                                Online
+                            </Text>
+                        </View>
+                    </Pressable>
+
+                    {/* Action Buttons */}
+                    <View style={{ 
+                        flexDirection: 'row', 
+                        gap: 20,
+                        marginRight: -8
+                    }}>
+                        {/* Voice Call */}
+                        <Pressable 
+                            style={({ pressed }) => ({
+                                opacity: pressed ? 0.7 : 1,
+                                padding: 8
                             })}
-                            disabled={!message.trim()}
+                            onPress={() => {
+                                console.log('Voice call');
+                            }}
                         >
                             <Ionicons 
-                                name="send" 
+                                name="call-outline" 
                                 size={24} 
-                                color={message.trim() ? '#fff' : isDark ? '#ffffff80' : '#00000080'} 
+                                color={textColor} 
+                            />
+                        </Pressable>
+
+                        {/* Video Call */}
+                        <Pressable 
+                            style={({ pressed }) => ({
+                                opacity: pressed ? 0.7 : 1,
+                                padding: 8
+                            })}
+                            onPress={() => {
+                                console.log('Video call');
+                            }}
+                        >
+                            <Ionicons 
+                                name="videocam-outline" 
+                                size={24} 
+                                color={textColor} 
+                            />
+                        </Pressable>
+
+                        {/* More Options */}
+                        <Pressable 
+                            style={({ pressed }) => ({
+                                opacity: pressed ? 0.7 : 1,
+                                padding: 8
+                            })}
+                            onPress={() => {
+                                console.log('More options');
+                            }}
+                        >
+                            <Ionicons 
+                                name="ellipsis-vertical" 
+                                size={24} 
+                                color={textColor} 
                             />
                         </Pressable>
                     </View>
                 </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+
+                {/* Wrap content dalam KeyboardAvoidingView */}
+                <KeyboardAvoidingView 
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={{ flex: 1 }}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // Updated offset
+                >
+                    <View style={{ flex: 1 }}>
+                        {/* Chat Messages */}
+                        <FlatList
+                            ref={flatListRef}
+                            data={chatHistory}
+                            keyExtractor={item => item.id}
+                            renderItem={({ item }) => (
+                                <MessageItem 
+                                    item={item} 
+                                    textColor={textColor}
+                                    tintColor={tintColor}
+                                    isDark={isDark}
+                                />
+                            )}
+                            contentContainerStyle={{ 
+                                paddingVertical: 16,
+                                flexGrow: 1,
+                                justifyContent: chatHistory.length === 0 ? 'center' : 'flex-start'
+                            }}
+                            showsVerticalScrollIndicator={false}
+                            onContentSizeChange={handleContentSizeChange}
+                            onLayout={handleContentSizeChange}
+                            maintainVisibleContentPosition={{
+                                minIndexForVisible: 0,
+                                autoscrollToTopThreshold: 10
+                            }}
+                            ListEmptyComponent={() => (
+                                <View style={{ 
+                                    flex: 1, 
+                                    justifyContent: 'center', 
+                                    alignItems: 'center',
+                                    opacity: 0.5
+                                }}>
+                                    <Text style={{ color: textColor }}>No messages yet</Text>
+                                </View>
+                            )}
+                        />
+
+                        {/* Message Input Container */}
+                        <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'flex-end',
+                            padding: 16,
+                            paddingBottom: Platform.OS === 'android' ? (isKeyboardVisible ? 12 : 20) : 20,
+                            gap: 8,
+                            borderTopWidth: 1,
+                            borderTopColor: isDark ? '#ffffff15' : '#00000010',
+                            backgroundColor: backgroundColor
+                        }}>
+                            {/* Attachment Button & Menu */}
+                            <View>
+                                <Pressable 
+                                    onPress={toggleAttachMenu}
+                                    style={({ pressed }) => ({
+                                        opacity: pressed ? 0.7 : 1,
+                                        padding: 10,
+                                        backgroundColor: isDark ? '#ffffff15' : '#00000008',
+                                        borderRadius: 12,
+                                        justifyContent: 'center',
+                                        alignItems: 'center'
+                                    })}
+                                >
+                                    <Ionicons 
+                                        name="add-circle-outline" 
+                                        size={22} 
+                                        color={isDark ? '#ffffff90' : '#00000090'} 
+                                    />
+                                </Pressable>
+
+                                {/* Popup Menu */}
+                                {showAttachMenu && (
+                                    <>
+                                        <Pressable 
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                width: Dimensions.get('window').width,
+                                                height: Dimensions.get('window').height,
+                                                backgroundColor: isDark ? '#00000050' : '#00000030'
+                                            }}
+                                            onPress={toggleAttachMenu}
+                                        />
+                                        <Animated.View style={{
+                                            position: 'absolute',
+                                            bottom: 80,
+                                            left: 0,
+                                            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+                                            borderRadius: 20,
+                                            padding: 16,
+                                            flexDirection: 'row',
+                                            gap: 16,
+                                            shadowColor: '#000',
+                                            shadowOffset: {
+                                                width: 0,
+                                                height: 4,
+                                            },
+                                            shadowOpacity: isDark ? 0.35 : 0.15,
+                                            shadowRadius: 8,
+                                            elevation: 8,
+                                            transform: [
+                                                { 
+                                                    translateY: attachMenuAnim.interpolate({
+                                                        inputRange: [0, 1],
+                                                        outputRange: [20, 0]
+                                                    })
+                                                },
+                                                {
+                                                    scale: attachMenuAnim.interpolate({
+                                                        inputRange: [0, 1],
+                                                        outputRange: [0.8, 1]
+                                                    })
+                                                }
+                                            ],
+                                            opacity: attachMenuAnim
+                                        }}>
+                                            {/* Camera Button */}
+                                            <Pressable 
+                                                onPress={() => {
+                                                    console.log('Open camera');
+                                                    toggleAttachMenu();
+                                                }}
+                                                style={({ pressed }) => ({
+                                                    opacity: pressed ? 0.7 : 1,
+                                                    padding: 16,
+                                                    backgroundColor: isDark ? '#ffffff10' : '#00000008',
+                                                    borderRadius: 16,
+                                                    alignItems: 'center',
+                                                    width: 80,
+                                                    height: 80,
+                                                    justifyContent: 'center'
+                                                })}
+                                            >
+                                                <View style={{
+                                                    backgroundColor: isDark ? '#ffffff15' : '#00000010',
+                                                    padding: 10,
+                                                    borderRadius: 12,
+                                                    marginBottom: 8
+                                                }}>
+                                                    <Ionicons 
+                                                        name="camera-outline" 
+                                                        size={24} 
+                                                        color={isDark ? '#ffffff90' : '#00000090'} 
+                                                    />
+                                                </View>
+                                                <Text style={{
+                                                    color: isDark ? '#ffffff90' : '#00000090',
+                                                    fontSize: 12,
+                                                    fontWeight: '500'
+                                                }}>
+                                                    Camera
+                                                </Text>
+                                            </Pressable>
+
+                                            {/* Photo Library Button */}
+                                            <Pressable 
+                                                onPress={() => {
+                                                    console.log('Open photos');
+                                                    toggleAttachMenu();
+                                                }}
+                                                style={({ pressed }) => ({
+                                                    opacity: pressed ? 0.7 : 1,
+                                                    padding: 16,
+                                                    backgroundColor: isDark ? '#ffffff10' : '#00000008',
+                                                    borderRadius: 16,
+                                                    alignItems: 'center',
+                                                    width: 80,
+                                                    height: 80,
+                                                    justifyContent: 'center'
+                                                })}
+                                            >
+                                                <View style={{
+                                                    backgroundColor: isDark ? '#ffffff15' : '#00000010',
+                                                    padding: 10,
+                                                    borderRadius: 12,
+                                                    marginBottom: 8
+                                                }}>
+                                                    <Ionicons 
+                                                        name="images-outline" 
+                                                        size={24} 
+                                                        color={isDark ? '#ffffff90' : '#00000090'} 
+                                                    />
+                                                </View>
+                                                <Text style={{
+                                                    color: isDark ? '#ffffff90' : '#00000090',
+                                                    fontSize: 12,
+                                                    fontWeight: '500'
+                                                }}>
+                                                    Photos
+                                                </Text>
+                                            </Pressable>
+
+                                            {/* File Button */}
+                                            <Pressable 
+                                                onPress={() => {
+                                                    console.log('Open files');
+                                                    toggleAttachMenu();
+                                                }}
+                                                style={({ pressed }) => ({
+                                                    opacity: pressed ? 0.7 : 1,
+                                                    padding: 16,
+                                                    backgroundColor: isDark ? '#ffffff10' : '#00000008',
+                                                    borderRadius: 16,
+                                                    alignItems: 'center',
+                                                    width: 80,
+                                                    height: 80,
+                                                    justifyContent: 'center'
+                                                })}
+                                            >
+                                                <View style={{
+                                                    backgroundColor: isDark ? '#ffffff15' : '#00000010',
+                                                    padding: 10,
+                                                    borderRadius: 12,
+                                                    marginBottom: 8
+                                                }}>
+                                                    <Ionicons 
+                                                        name="document-outline" 
+                                                        size={24} 
+                                                        color={isDark ? '#ffffff90' : '#00000090'} 
+                                                    />
+                                                </View>
+                                                <Text style={{
+                                                    color: isDark ? '#ffffff90' : '#00000090',
+                                                    fontSize: 12,
+                                                    fontWeight: '500'
+                                                }}>
+                                                    Files
+                                                </Text>
+                                            </Pressable>
+                                        </Animated.View>
+                                    </>
+                                )}
+                            </View>
+
+                            {/* Message Input */}
+                            <View style={{
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'flex-end',
+                                backgroundColor: isDark ? '#ffffff15' : '#00000008',
+                                borderRadius: 16,
+                                paddingHorizontal: 16,
+                                paddingVertical: 8,
+                                minHeight: 44,
+                                maxHeight: 120
+                            }}>
+                                <TextInput
+                                    value={message}
+                                    onChangeText={setMessage}
+                                    placeholder="Type a message..."
+                                    placeholderTextColor={isDark ? '#ffffff50' : '#00000050'}
+                                    style={{
+                                        flex: 1,
+                                        color: isDark ? '#ffffffee' : '#000000ee',
+                                        fontSize: 16,
+                                        maxHeight: 100,
+                                        paddingVertical: 4,
+                                        textAlignVertical: 'center',
+                                        lineHeight: 20
+                                    }}
+                                    multiline
+                                    maxLength={1000}
+                                    onContentSizeChange={() => {
+                                        if (isKeyboardVisible) {
+                                            flatListRef.current?.scrollToEnd({ animated: true });
+                                        }
+                                    }}
+                                />
+                            </View>
+
+                            {/* Right Action Buttons Container */}
+                            <View style={{ 
+                                flexDirection: 'row', 
+                                gap: 4,
+                                marginLeft: 4 
+                            }}>
+                                {/* Microphone Button */}
+                                <Pressable 
+                                    onPress={() => console.log('Start recording')}
+                                    style={({ pressed }) => ({
+                                        opacity: pressed ? 0.7 : 1,
+                                        padding: 10,
+                                        backgroundColor: isDark ? '#ffffff15' : '#00000008',
+                                        borderRadius: 12,
+                                        justifyContent: 'center',
+                                        alignItems: 'center'
+                                    })}
+                                >
+                                    <Ionicons 
+                                        name="mic-outline" 
+                                        size={22} 
+                                        color={isDark ? '#ffffff90' : '#00000090'} 
+                                    />
+                                </Pressable>
+
+                                {/* Send Button */}
+                                <Pressable 
+                                    onPress={handleSend}
+                                    style={({ pressed }) => ({
+                                        opacity: message.trim() ? (pressed ? 0.7 : 1) : 0.5,
+                                        padding: 10,
+                                        backgroundColor: message.trim() 
+                                            ? isDark 
+                                                ? '#2196F3' 
+                                                : tintColor 
+                                            : isDark 
+                                                ? '#ffffff20' 
+                                                : '#00000015',
+                                        borderRadius: 12,
+                                        justifyContent: 'center',
+                                        alignItems: 'center'
+                                    })}
+                                    disabled={!message.trim()}
+                                >
+                                    <Ionicons 
+                                        name="send" 
+                                        size={22} 
+                                        color={message.trim() ? '#fff' : isDark ? '#ffffff70' : '#00000070'} 
+                                    />
+                                </Pressable>
+                            </View>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </>
     );
 }   
