@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { router } from 'expo-router';
 
 // Dummy data utk chat list
 const CHATS = [
@@ -23,29 +24,28 @@ const CHATS = [
         name: 'Sarah Wilson',
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
         lastMessage: 'Hey, how are you doing?',
-        time: '2m ago',
-        unread: 2,
-        online: true
+        time: '09:41',
+        unreadCount: 2,
+        isOnline: true
     },
     {
         id: '2',
         name: 'Alex Thompson',
-        avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
-        lastMessage: 'The project looks amazing! 🎉',
-        time: '5m ago',
-        unread: 0,
-        online: true
+        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61',
+        lastMessage: 'The project looks great! 🚀',
+        time: 'Yesterday',
+        unreadCount: 0,
+        isOnline: false
     },
     {
         id: '3',
-        name: 'Jessica Parker',
+        name: 'Emily Parker',
         avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80',
-        lastMessage: 'Let me check and get back to you',
-        time: '1h ago',
-        unread: 1,
-        online: false
-    },
-    // ... tambah dummy data lain sesuai kebutuhan
+        lastMessage: 'See you tomorrow at the meeting!',
+        time: 'Yesterday',
+        unreadCount: 1,
+        isOnline: true
+    }
 ];
 
 const NOTIFICATIONS = [
@@ -69,24 +69,36 @@ type ChatItemProps = {
     onPress: () => void;
 };
 
-function ChatItem({ item, onPress }: ChatItemProps) {
+function ChatItem({ item }: ChatItemProps) {
     const textColor = useThemeColor({}, 'text');
+    const backgroundColor = useThemeColor({}, 'background');
     const isDark = useColorScheme() === 'dark';
-    
+    const tintColor = Colors[useColorScheme() ?? 'light'].tint;
+
+    const handleChatPress = () => {
+        router.push({
+            pathname: '/message',
+            params: {
+                id: item.id,
+                name: item.name,
+                avatar: item.avatar
+            }
+        });
+    };
+
     return (
         <Pressable 
-            onPress={onPress}
+            onPress={handleChatPress}
             style={({ pressed }) => ({
                 flexDirection: 'row',
+                alignItems: 'center',
                 padding: 16,
-                backgroundColor: pressed ? (isDark ? '#ffffff10' : '#00000005') : 'transparent',
-                borderRadius: 16,
-                marginHorizontal: 16,
-                marginVertical: 4,
-                alignItems: 'center'
+                backgroundColor: pressed 
+                    ? (isDark ? '#ffffff08' : '#00000005')
+                    : 'transparent'
             })}
         >
-            {/* Avatar & Online Status */}
+            {/* Avatar */}
             <View style={{ position: 'relative' }}>
                 <Image 
                     source={{ uri: item.avatar }}
@@ -94,30 +106,27 @@ function ChatItem({ item, onPress }: ChatItemProps) {
                         width: 56,
                         height: 56,
                         borderRadius: 28,
-                        backgroundColor: isDark ? '#ffffff20' : '#00000010'
+                        marginRight: 12
                     }}
                 />
-                {item.online && (
+                {item.isOnline && (
                     <View style={{
                         position: 'absolute',
-                        right: 2,
                         bottom: 2,
+                        right: 14,
                         width: 12,
                         height: 12,
                         borderRadius: 6,
                         backgroundColor: '#4CAF50',
                         borderWidth: 2,
-                        borderColor: isDark ? '#151718' : '#fff'
+                        borderColor: backgroundColor
                     }} />
                 )}
             </View>
 
             {/* Chat Info */}
-            <View style={{ 
-                flex: 1,
-                marginLeft: 12
-            }}>
-                <View style={{ 
+            <View style={{ flex: 1 }}>
+                <View style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -138,6 +147,7 @@ function ChatItem({ item, onPress }: ChatItemProps) {
                         {item.time}
                     </Text>
                 </View>
+                
                 <View style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
@@ -154,23 +164,24 @@ function ChatItem({ item, onPress }: ChatItemProps) {
                     >
                         {item.lastMessage}
                     </Text>
-                    {item.unread > 0 && (
+                    
+                    {item.unreadCount > 0 && (
                         <View style={{
                             minWidth: 20,
                             height: 20,
                             borderRadius: 10,
-                            backgroundColor: Colors[useColorScheme() ?? 'light'].tint,
+                            backgroundColor: tintColor,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginLeft: 8,
-                            paddingHorizontal: 6
+                            paddingHorizontal: 6,
+                            marginLeft: 8
                         }}>
-                            <Text style={{ 
+                            <Text style={{
                                 fontSize: 12,
-                                color: '#fff',
-                                fontWeight: '600'
+                                fontWeight: '600',
+                                color: '#fff'
                             }}>
-                                {item.unread}
+                                {item.unreadCount}
                             </Text>
                         </View>
                     )}
