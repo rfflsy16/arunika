@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
     View, 
     Text, 
@@ -6,7 +6,10 @@ import {
     TextInput, 
     FlatList, 
     Image, 
-    Pressable 
+    Pressable, 
+    Animated,
+    Dimensions,
+    Easing
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -41,6 +44,22 @@ const CHATS = [
         time: '1h ago',
         unread: 1,
         online: false
+    },
+    // ... tambah dummy data lain sesuai kebutuhan
+];
+
+const NOTIFICATIONS = [
+    {
+        id: '1',
+        title: 'New Message',
+        description: 'You have a new message from Sarah Wilson',
+        time: '2m ago'
+    },
+    {
+        id: '2',
+        title: 'Project Update',
+        description: 'Alex Thompson commented on your project',
+        time: '5m ago'
     },
     // ... tambah dummy data lain sesuai kebutuhan
 ];
@@ -161,12 +180,111 @@ function ChatItem({ item, onPress }: ChatItemProps) {
     );
 }
 
+function NotificationItem({ item }: { item: typeof NOTIFICATIONS[0] }) {
+    const textColor = useThemeColor({}, 'text');
+    
+    return (
+        <View style={{
+            padding: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: textColor + '20'
+        }}>
+            <Text style={{ 
+                fontSize: 16, 
+                fontWeight: '600', 
+                color: textColor 
+            }}>
+                {item.title}
+            </Text>
+            <Text style={{ 
+                fontSize: 14, 
+                color: textColor, 
+                opacity: 0.7, 
+                marginVertical: 4 
+            }}>
+                {item.description}
+            </Text>
+            <Text style={{ 
+                fontSize: 12, 
+                color: textColor, 
+                opacity: 0.5 
+            }}>
+                {item.time}
+            </Text>
+        </View>
+    );
+}
+
 export default function ChatScreen() {
     const [search, setSearch] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [notificationBtnLayout, setNotificationBtnLayout] = useState({ x: 0, y: 0 });
+    const animatedValue = useRef(new Animated.Value(0)).current;
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
     const isDark = useColorScheme() === 'dark';
     const tintColor = Colors[useColorScheme() ?? 'light'].tint;
+
+    const showModal = () => {
+        setModalVisible(true);
+        Animated.spring(animatedValue, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 40,
+            friction: 6,
+            velocity: 1
+        }).start();
+    };
+
+    const hideModal = () => {
+        Animated.spring(animatedValue, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 65,
+            friction: 5,
+            velocity: -1
+        }).start(() => setModalVisible(false));
+    };
+
+    const modalScale = animatedValue.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [0.1, 0.7, 1]
+    });
+
+    const modalTranslateY = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-notificationBtnLayout.y + 40, 0]
+    });
+
+    const modalTranslateX = animatedValue.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [80, 30, 0]
+    });
+
+    const modalRotateX = animatedValue.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: ['45deg', '10deg', '0deg']
+    });
+
+    const modalRotateY = animatedValue.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: ['-45deg', '-10deg', '0deg']
+    });
+
+    const modalSkewX = animatedValue.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: ['10deg', '5deg', '0deg']
+    });
+
+    const modalOpacity = animatedValue.interpolate({
+        inputRange: [0, 0.2, 1],
+        outputRange: [0, 0.8, 1]
+    });
+
+    const overlayOpacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 0.5]
+    });
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor }}>
@@ -192,7 +310,14 @@ export default function ChatScreen() {
                     
                     {/* Notification Button */}
                     <Pressable 
-                        onPress={() => console.log('Notification pressed')}
+                        onPress={() => {
+                            showModal();
+                        }}
+                        onLayout={(event) => {
+                            event.target.measure((x, y, width, height, pageX, pageY) => {
+                                setNotificationBtnLayout({ x: pageX, y: pageY });
+                            });
+                        }}
                         style={({ pressed }) => ({
                             width: 40,
                             height: 40,
@@ -269,6 +394,95 @@ export default function ChatScreen() {
                 contentContainerStyle={{ paddingVertical: 8 }}
                 showsVerticalScrollIndicator={false}
             />
+
+            {/* Notification Modal */}
+            {modalVisible && (
+                <>
+                    <Animated.View 
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: '#000',
+                            opacity: overlayOpacity
+                        }}
+                    />
+                    <Pressable 
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            justifyContent: 'flex-start'
+                        }}
+                        onPress={hideModal}
+                    >
+                        <Animated.View 
+                            style={{
+                                position: 'absolute',
+                                top: notificationBtnLayout.y + 50,
+                                right: 20,
+                                width: 300,
+                                backgroundColor: backgroundColor,
+                                borderRadius: 20,
+                                padding: 16,
+                                shadowColor: '#000',
+                                shadowOffset: { width: -5, height: 5 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8,
+                                opacity: modalOpacity,
+                                transform: [
+                                    { scale: modalScale },
+                                    { translateY: modalTranslateY },
+                                    { translateX: modalTranslateX },
+                                    { rotateX: modalRotateX },
+                                    { rotateY: modalRotateY },
+                                    { skewX: modalSkewX }
+                                ]
+                            }}
+                        >
+                            <View style={{
+                                position: 'absolute',
+                                top: -10,
+                                right: 20,
+                                width: 20,
+                                height: 20,
+                                backgroundColor: backgroundColor,
+                                transform: [{ rotate: '45deg' }],
+                                shadowColor: '#000',
+                                shadowOffset: { width: -2, height: -2 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 4,
+                                elevation: 2
+                            }} />
+                            
+                            <Text style={{
+                                fontSize: 20,
+                                fontWeight: '700',
+                                color: textColor,
+                                marginBottom: 16
+                            }}>
+                                Notifications
+                            </Text>
+                            
+                            <FlatList
+                                data={NOTIFICATIONS}
+                                keyExtractor={item => item.id}
+                                renderItem={({ item }) => <NotificationItem item={item} />}
+                                style={{ 
+                                    width: '100%',
+                                    maxHeight: 400 
+                                }}
+                                showsVerticalScrollIndicator={false}
+                            />
+                        </Animated.View>
+                    </Pressable>
+                </>
+            )}
         </SafeAreaView>
     );
 }
