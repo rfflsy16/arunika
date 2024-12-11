@@ -177,6 +177,9 @@ export default function MessageScreen() {
     const [showAttachMenu, setShowAttachMenu] = useState(false);
     const attachMenuAnim = useRef(new Animated.Value(0)).current;
 
+    // Tambahin state utk active button
+    const [activeButton, setActiveButton] = useState<string | null>(null);
+
     // Load chat history safely
     useEffect(() => {
         try {
@@ -519,41 +522,46 @@ export default function MessageScreen() {
                                 {/* Popup Menu */}
                                 {showAttachMenu && (
                                     <>
-                                        <Pressable 
+                                        {/* Overlay dengan blur effect */}
+                                        <Animated.View 
                                             style={{
                                                 position: 'absolute',
                                                 top: 0,
                                                 left: 0,
                                                 right: 0,
                                                 bottom: 0,
-                                                width: Dimensions.get('window').width,
-                                                height: Dimensions.get('window').height,
-                                                backgroundColor: isDark ? '#00000050' : '#00000030'
+                                                backgroundColor: isDark ? '#00000080' : '#00000040',
+                                                opacity: attachMenuAnim,
                                             }}
-                                            onPress={toggleAttachMenu}
-                                        />
+                                        >
+                                            <Pressable 
+                                                style={{ flex: 1 }}
+                                                onPress={toggleAttachMenu}
+                                            />
+                                        </Animated.View>
+
                                         <Animated.View style={{
                                             position: 'absolute',
                                             bottom: 80,
-                                            left: 0,
+                                            left: 16,
+                                            right: 16,
                                             backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                                            borderRadius: 20,
-                                            padding: 16,
-                                            flexDirection: 'row',
+                                            borderRadius: 24,
+                                            padding: 20,
                                             gap: 16,
-                                            shadowColor: '#000',
+                                            shadowColor: isDark ? '#000' : '#666',
                                             shadowOffset: {
                                                 width: 0,
-                                                height: 4,
+                                                height: 8,
                                             },
-                                            shadowOpacity: isDark ? 0.35 : 0.15,
-                                            shadowRadius: 8,
-                                            elevation: 8,
+                                            shadowOpacity: isDark ? 0.5 : 0.2,
+                                            shadowRadius: 16,
+                                            elevation: 12,
                                             transform: [
                                                 { 
                                                     translateY: attachMenuAnim.interpolate({
                                                         inputRange: [0, 1],
-                                                        outputRange: [20, 0]
+                                                        outputRange: [100, 0]
                                                     })
                                                 },
                                                 {
@@ -565,119 +573,182 @@ export default function MessageScreen() {
                                             ],
                                             opacity: attachMenuAnim
                                         }}>
-                                            {/* Camera Button */}
-                                            <Pressable 
-                                                onPress={() => {
-                                                    console.log('Open camera');
-                                                    toggleAttachMenu();
-                                                }}
-                                                style={({ pressed }) => ({
-                                                    opacity: pressed ? 0.7 : 1,
-                                                    padding: 16,
-                                                    backgroundColor: isDark ? '#ffffff10' : '#00000008',
-                                                    borderRadius: 16,
-                                                    alignItems: 'center',
-                                                    width: 80,
-                                                    height: 80,
-                                                    justifyContent: 'center'
-                                                })}
-                                            >
-                                                <View style={{
-                                                    backgroundColor: isDark ? '#ffffff15' : '#00000010',
-                                                    padding: 10,
-                                                    borderRadius: 12,
-                                                    marginBottom: 8
-                                                }}>
-                                                    <Ionicons 
-                                                        name="camera-outline" 
-                                                        size={24} 
-                                                        color={isDark ? '#ffffff90' : '#00000090'} 
-                                                    />
-                                                </View>
-                                                <Text style={{
-                                                    color: isDark ? '#ffffff90' : '#00000090',
-                                                    fontSize: 12,
-                                                    fontWeight: '500'
-                                                }}>
-                                                    Camera
-                                                </Text>
-                                            </Pressable>
+                                            {/* Title */}
+                                            <Text style={{
+                                                fontSize: 16,
+                                                fontWeight: '600',
+                                                color: isDark ? '#ffffff' : '#000000',
+                                                opacity: 0.9,
+                                                marginBottom: 4
+                                            }}>
+                                                Share Content
+                                            </Text>
 
-                                            {/* Photo Library Button */}
-                                            <Pressable 
-                                                onPress={() => {
-                                                    console.log('Open photos');
-                                                    toggleAttachMenu();
-                                                }}
-                                                style={({ pressed }) => ({
-                                                    opacity: pressed ? 0.7 : 1,
-                                                    padding: 16,
-                                                    backgroundColor: isDark ? '#ffffff10' : '#00000008',
-                                                    borderRadius: 16,
-                                                    alignItems: 'center',
-                                                    width: 80,
-                                                    height: 80,
-                                                    justifyContent: 'center'
-                                                })}
-                                            >
-                                                <View style={{
-                                                    backgroundColor: isDark ? '#ffffff15' : '#00000010',
-                                                    padding: 10,
-                                                    borderRadius: 12,
-                                                    marginBottom: 8
-                                                }}>
-                                                    <Ionicons 
-                                                        name="images-outline" 
-                                                        size={24} 
-                                                        color={isDark ? '#ffffff90' : '#00000090'} 
-                                                    />
-                                                </View>
-                                                <Text style={{
-                                                    color: isDark ? '#ffffff90' : '#00000090',
-                                                    fontSize: 12,
-                                                    fontWeight: '500'
-                                                }}>
-                                                    Photos
-                                                </Text>
-                                            </Pressable>
+                                            {/* Menu Grid */}
+                                            <View style={{
+                                                flexDirection: 'row',
+                                                justifyContent: 'space-between',
+                                                gap: 12
+                                            }}>
+                                                {/* Camera Button */}
+                                                <Pressable 
+                                                    onPress={() => {
+                                                        setActiveButton('camera');
+                                                        setTimeout(() => {
+                                                            console.log('Open camera');
+                                                            toggleAttachMenu();
+                                                            setActiveButton(null);
+                                                        }, 200);
+                                                    }}
+                                                    onPressIn={() => setActiveButton('camera')}
+                                                    onPressOut={() => setActiveButton(null)}
+                                                    style={({ pressed }) => ({
+                                                        flex: 1,
+                                                        opacity: pressed ? 0.8 : 1,
+                                                        transform: [{ scale: activeButton === 'camera' ? 0.95 : 1 }],
+                                                    })}
+                                                >
+                                                    <Animated.View style={{
+                                                        padding: 16,
+                                                        backgroundColor: isDark 
+                                                            ? activeButton === 'camera' ? '#ffffff18' : '#ffffff10'
+                                                            : activeButton === 'camera' ? '#00000012' : '#00000008',
+                                                        borderRadius: 20,
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        height: 100,
+                                                        borderWidth: 1,
+                                                        borderColor: isDark ? '#ffffff15' : '#00000010',
+                                                    }}>
+                                                        <View style={{
+                                                            backgroundColor: isDark ? '#2196F3' : '#2196F3',
+                                                            padding: 12,
+                                                            borderRadius: 16,
+                                                            marginBottom: 12
+                                                        }}>
+                                                            <Ionicons 
+                                                                name="camera-outline" 
+                                                                size={26} 
+                                                                color="#fff"
+                                                            />
+                                                        </View>
+                                                        <Text style={{
+                                                            color: isDark ? '#ffffff' : '#000000',
+                                                            fontSize: 13,
+                                                            fontWeight: '600',
+                                                            opacity: 0.9
+                                                        }}>
+                                                            Camera
+                                                        </Text>
+                                                    </Animated.View>
+                                                </Pressable>
 
-                                            {/* File Button */}
-                                            <Pressable 
-                                                onPress={() => {
-                                                    console.log('Open files');
-                                                    toggleAttachMenu();
-                                                }}
-                                                style={({ pressed }) => ({
-                                                    opacity: pressed ? 0.7 : 1,
-                                                    padding: 16,
-                                                    backgroundColor: isDark ? '#ffffff10' : '#00000008',
-                                                    borderRadius: 16,
-                                                    alignItems: 'center',
-                                                    width: 80,
-                                                    height: 80,
-                                                    justifyContent: 'center'
-                                                })}
-                                            >
-                                                <View style={{
-                                                    backgroundColor: isDark ? '#ffffff15' : '#00000010',
-                                                    padding: 10,
-                                                    borderRadius: 12,
-                                                    marginBottom: 8
-                                                }}>
-                                                    <Ionicons 
-                                                        name="document-outline" 
-                                                        size={24} 
-                                                        color={isDark ? '#ffffff90' : '#00000090'} 
-                                                    />
-                                                </View>
-                                                <Text style={{
-                                                    color: isDark ? '#ffffff90' : '#00000090',
-                                                    fontSize: 12,
-                                                    fontWeight: '500'
-                                                }}>
-                                                    Files
-                                                </Text>
-                                            </Pressable>
+                                                {/* Photo Library Button */}
+                                                <Pressable 
+                                                    onPress={() => {
+                                                        setActiveButton('photos');
+                                                        setTimeout(() => {
+                                                            console.log('Open photos');
+                                                            toggleAttachMenu();
+                                                            setActiveButton(null);
+                                                        }, 200);
+                                                    }}
+                                                    onPressIn={() => setActiveButton('photos')}
+                                                    onPressOut={() => setActiveButton(null)}
+                                                    style={({ pressed }) => ({
+                                                        flex: 1,
+                                                        opacity: pressed ? 0.8 : 1,
+                                                        transform: [{ scale: activeButton === 'photos' ? 0.95 : 1 }],
+                                                    })}
+                                                >
+                                                    <Animated.View style={{
+                                                        padding: 16,
+                                                        backgroundColor: isDark 
+                                                            ? activeButton === 'photos' ? '#ffffff18' : '#ffffff10'
+                                                            : activeButton === 'photos' ? '#00000012' : '#00000008',
+                                                        borderRadius: 20,
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        height: 100,
+                                                        borderWidth: 1,
+                                                        borderColor: isDark ? '#ffffff15' : '#00000010',
+                                                    }}>
+                                                        <View style={{
+                                                            backgroundColor: '#FF4081',
+                                                            padding: 12,
+                                                            borderRadius: 16,
+                                                            marginBottom: 12
+                                                        }}>
+                                                            <Ionicons 
+                                                                name="images-outline" 
+                                                                size={26} 
+                                                                color="#fff"
+                                                            />
+                                                        </View>
+                                                        <Text style={{
+                                                            color: isDark ? '#ffffff' : '#000000',
+                                                            fontSize: 13,
+                                                            fontWeight: '600',
+                                                            opacity: 0.9
+                                                        }}>
+                                                            Photos
+                                                        </Text>
+                                                    </Animated.View>
+                                                </Pressable>
+
+                                                {/* File Button */}
+                                                <Pressable 
+                                                    onPress={() => {
+                                                        setActiveButton('files');
+                                                        setTimeout(() => {
+                                                            console.log('Open files');
+                                                            toggleAttachMenu();
+                                                            setActiveButton(null);
+                                                        }, 200);
+                                                    }}
+                                                    onPressIn={() => setActiveButton('files')}
+                                                    onPressOut={() => setActiveButton(null)}
+                                                    style={({ pressed }) => ({
+                                                        flex: 1,
+                                                        opacity: pressed ? 0.8 : 1,
+                                                        transform: [{ scale: activeButton === 'files' ? 0.95 : 1 }],
+                                                    })}
+                                                >
+                                                    <Animated.View style={{
+                                                        padding: 16,
+                                                        backgroundColor: isDark 
+                                                            ? activeButton === 'files' ? '#ffffff18' : '#ffffff10'
+                                                            : activeButton === 'files' ? '#00000012' : '#00000008',
+                                                        borderRadius: 20,
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        height: 100,
+                                                        borderWidth: 1,
+                                                        borderColor: isDark ? '#ffffff15' : '#00000010',
+                                                    }}>
+                                                        <View style={{
+                                                            backgroundColor: '#4CAF50',
+                                                            padding: 12,
+                                                            borderRadius: 16,
+                                                            marginBottom: 12
+                                                        }}>
+                                                            <Ionicons 
+                                                                name="document-outline" 
+                                                                size={26} 
+                                                                color="#fff"
+                                                            />
+                                                        </View>
+                                                        <Text style={{
+                                                            color: isDark ? '#ffffff' : '#000000',
+                                                            fontSize: 13,
+                                                            fontWeight: '600',
+                                                            opacity: 0.9
+                                                        }}>
+                                                            Files
+                                                        </Text>
+                                                    </Animated.View>
+                                                </Pressable>
+                                            </View>
                                         </Animated.View>
                                     </>
                                 )}
