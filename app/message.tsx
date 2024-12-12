@@ -806,6 +806,7 @@ export default function MessageScreen() {
                                 flexDirection: 'row',
                                 alignItems: 'flex-end',
                                 backgroundColor: isDark 
+                                
                                     ? 'rgba(255,255,255,0.05)' 
                                     : 'rgba(0,0,0,0.03)',
                                 borderRadius: 20,
@@ -816,6 +817,7 @@ export default function MessageScreen() {
                             }}>
                                 <TextInput
                                     value={message}
+                                    autoCapitalize='none'
                                     onChangeText={setMessage}
                                     placeholder="Type a message..."
                                     placeholderTextColor={isDark 
