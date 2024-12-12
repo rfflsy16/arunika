@@ -12,7 +12,9 @@ import {
     Animated,
     Dimensions,
     Keyboard,
-    KeyboardEvent
+    KeyboardEvent,
+    Easing,
+    StyleSheet
 } from "react-native";
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,41 +69,43 @@ function MessageItem({ item, textColor, tintColor, isDark }: MessageItemProps) {
             <View style={{
                 backgroundColor: item.isMe 
                     ? isDark 
-                        ? '#2196F3'  // Biru lebih gelap utk dark mode
-                        : tintColor 
+                        ? 'rgba(33, 150, 243, 0.9)'  // Biru semi-transparent
+                        : 'rgba(33, 150, 243, 0.95)' 
                     : isDark 
-                        ? '#ffffff15'  // Lebih gelap utk dark mode
-                        : '#00000008',
-                borderRadius: 20,
+                        ? 'rgba(255, 255, 255, 0.08)'  // Lebih subtle di dark mode
+                        : 'rgba(0, 0, 0, 0.04)',
+                borderRadius: 24,  // Lebih rounded
                 paddingHorizontal: 16,
                 paddingVertical: 12,
-                borderTopRightRadius: item.isMe ? 4 : 20,
-                borderTopLeftRadius: item.isMe ? 20 : 4,
-                shadowColor: '#000',
+                borderTopRightRadius: item.isMe ? 8 : 24,
+                borderTopLeftRadius: item.isMe ? 24 : 8,
+                // Update shadow utk efek floating yg lebih bagus
+                shadowColor: item.isMe ? '#2196F3' : '#000',
                 shadowOffset: {
                     width: 0,
-                    height: 1,
+                    height: 4,
                 },
-                shadowOpacity: isDark ? 0.2 : 0.1,
-                shadowRadius: 2,
-                elevation: 2
+                shadowOpacity: isDark ? 0.25 : 0.15,
+                shadowRadius: 8,
+                elevation: 4
             }}>
                 <Text style={{
                     color: item.isMe 
-                        ? '#fff'  // Tetep putih utk bubble chat kita
+                        ? '#fff'
                         : isDark 
-                            ? '#ffffffee'  // Sedikit transparent di dark mode
-                            : '#000000ee',
-                    fontSize: 16
+                            ? 'rgba(255, 255, 255, 0.95)'
+                            : 'rgba(0, 0, 0, 0.9)',
+                    fontSize: 16,
+                    lineHeight: 22  // Tambah line height utk readability
                 }}>
                     {item.text}
                 </Text>
             </View>
             <Text style={{
-                color: isDark ? '#ffffff80' : '#00000080',
+                color: isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
                 fontSize: 12,
-                marginTop: 4,
-                marginHorizontal: 4,
+                marginTop: 6,
+                marginHorizontal: 8,
                 alignSelf: item.isMe ? 'flex-end' : 'flex-start'
             }}>
                 {item.time}
@@ -157,6 +161,77 @@ let CHAT_HISTORY: ChatHistory = {
     ]
 };
 
+// Tambahin AnimatedPressable component
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Tambahin constants
+const BUTTON_SIZE = 58;
+const MENU_PADDING = 24;
+const GRID_GAP = 32;
+const COLUMN_COUNT = 3;
+const ANIMATION_DURATION = 300;
+
+// Bikin type untuk attachment options
+type AttachmentOption = {
+    id: string;
+    icon: any; // IconName from Ionicons
+    label: string;
+    color: string;
+    gradient: string[];
+    action: () => void;
+};
+
+const ATTACHMENT_OPTIONS: AttachmentOption[] = [
+    {
+        id: 'camera',
+        icon: 'camera-outline',
+        label: 'Camera',
+        color: '#2196F3',
+        gradient: ['#1E88E5', '#64B5F6'],
+        action: () => console.log('Open camera')
+    },
+    {
+        id: 'gallery',
+        icon: 'images-outline',
+        label: 'Gallery',
+        color: '#FF4081',
+        gradient: ['#E91E63', '#FF4081'],
+        action: () => console.log('Open gallery')
+    },
+    {
+        id: 'document',
+        icon: 'document-outline',
+        label: 'Document',
+        color: '#4CAF50',
+        gradient: ['#43A047', '#81C784'],
+        action: () => console.log('Open document')
+    },
+    {
+        id: 'location',
+        icon: 'location-outline',
+        label: 'Location',
+        color: '#FF9800',
+        gradient: ['#FB8C00', '#FFB74D'],
+        action: () => console.log('Share location')
+    },
+    {
+        id: 'contact',
+        icon: 'person-outline',
+        label: 'Contact',
+        color: '#9C27B0',
+        gradient: ['#8E24AA', '#BA68C8'],
+        action: () => console.log('Share contact')
+    },
+    {
+        id: 'audio',
+        icon: 'musical-notes-outline',
+        label: 'Audio',
+        color: '#F44336',
+        gradient: ['#E53935', '#EF5350'],
+        action: () => console.log('Share audio')
+    }
+];
+
 export default function MessageScreen() {
     const params = useLocalSearchParams();
     const [message, setMessage] = useState('');
@@ -169,16 +244,17 @@ export default function MessageScreen() {
     const tintColor = Colors[useColorScheme() ?? 'light'].tint;
     const isDark = useColorScheme() === 'dark';
 
-    // Tambahin ref buat keyboard height
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
+    // Hapus semua keyboard animation, cukup pake state
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     // Tambahin state utk popup menu
     const [showAttachMenu, setShowAttachMenu] = useState(false);
-    const attachMenuAnim = useRef(new Animated.Value(0)).current;
-
-    // Tambahin state utk active button
-    const [activeButton, setActiveButton] = useState<string | null>(null);
+    
+    // Tambah animation values
+    const backdropAnim = useRef(new Animated.Value(0)).current;
+    const attachmentAnim = useRef(new Animated.Value(0)).current;
+    const optionsAnim = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
 
     // Load chat history safely
     useEffect(() => {
@@ -237,13 +313,17 @@ export default function MessageScreen() {
         }
     };
 
-    // Handle keyboard events
+    // Update keyboard event listener
     useEffect(() => {
         const keyboardWillShow = (e: KeyboardEvent) => {
             setIsKeyboardVisible(true);
             setKeyboardHeight(e.endCoordinates.height);
             
-            // Delay scroll sedikit biar smooth
+            if (showAttachMenu) {
+                toggleAttachMenu();
+            }
+
+            // Auto scroll ke bawah
             setTimeout(() => {
                 flatListRef.current?.scrollToEnd({ animated: true });
             }, 100);
@@ -254,7 +334,6 @@ export default function MessageScreen() {
             setKeyboardHeight(0);
         };
 
-        // Subscribe ke event keyboard
         const showSubscription = Keyboard.addListener(
             Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
             keyboardWillShow
@@ -268,33 +347,242 @@ export default function MessageScreen() {
             showSubscription.remove();
             hideSubscription.remove();
         };
-    }, []);
+    }, [showAttachMenu]);
 
-    // Auto scroll pas content berubah
-    const handleContentSizeChange = () => {
-        if (isKeyboardVisible) {
-            flatListRef.current?.scrollToEnd({ animated: true });
+    // Update toggleAttachMenu
+    const toggleAttachMenu = () => {
+        Keyboard.dismiss();
+        
+        if (showAttachMenu) {
+            // Close animation
+            Animated.parallel([
+                Animated.timing(backdropAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true
+                }),
+                Animated.timing(attachmentAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true
+                }),
+                ...optionsAnim.map((anim, i) => 
+                    Animated.timing(anim, {
+                        toValue: 0,
+                        duration: 200,
+                        delay: i * 30,
+                        useNativeDriver: true
+                    })
+                )
+            ]).start(() => setShowAttachMenu(false));
+        } else {
+            setShowAttachMenu(true);
+            // Open animation
+            Animated.parallel([
+                Animated.timing(backdropAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true
+                }),
+                Animated.timing(attachmentAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true
+                }),
+                ...optionsAnim.map((anim, i) => 
+                    Animated.timing(anim, {
+                        toValue: 1,
+                        duration: 200,
+                        delay: i * 30,
+                        useNativeDriver: true
+                    })
+                )
+            ]).start();
         }
     };
 
-    // Tambahin fungsi utk show/hide menu
-    const toggleAttachMenu = () => {
-        if (showAttachMenu) {
-            Animated.spring(attachMenuAnim, {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 65,
-                friction: 5
-            }).start(() => setShowAttachMenu(false));
-        } else {
-            setShowAttachMenu(true);
-            Animated.spring(attachMenuAnim, {
-                toValue: 1,
-                useNativeDriver: true,
-                tension: 40,
-                friction: 6
-            }).start();
-        }
+    // Update attachment menu render
+    const renderAttachmentMenu = () => {
+        if (!showAttachMenu) return null;
+
+        const row1 = ATTACHMENT_OPTIONS.slice(0, 3);
+        const row2 = ATTACHMENT_OPTIONS.slice(3, 6);
+
+        return (
+            <>
+                <Animated.View 
+                    style={[
+                        StyleSheet.absoluteFill,
+                        {
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            opacity: backdropAnim
+                        }
+                    ]}
+                >
+                    <Pressable 
+                        style={StyleSheet.absoluteFill} 
+                        onPress={toggleAttachMenu} 
+                    />
+                </Animated.View>
+
+                <Animated.View style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: isDark ? '#121212' : '#f8f8f8',
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
+                    padding: MENU_PADDING,
+                    paddingTop: 16,
+                    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+                    transform: [{
+                        translateY: attachmentAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [300, 0]
+                        })
+                    }]
+                }}>
+                    {/* Handle Bar */}
+                    <View style={{
+                        width: 40,
+                        height: 4,
+                        backgroundColor: isDark 
+                            ? 'rgba(255,255,255,0.15)' 
+                            : 'rgba(0,0,0,0.15)',
+                        borderRadius: 2,
+                        alignSelf: 'center',
+                        marginBottom: 24
+                    }} />
+
+                    {/* Grid Container */}
+                    <View style={{
+                        gap: GRID_GAP,
+                        paddingHorizontal: 8
+                    }}>
+                        {/* Row 1 */}
+                        <View style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            {row1.map((option, index) => (
+                                <AnimatedPressable
+                                    key={option.id}
+                                    style={[{
+                                        opacity: optionsAnim[index],
+                                        transform: [{
+                                            scale: optionsAnim[index].interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [0.8, 1]
+                                            })
+                                        }]
+                                    }]}
+                                    onPress={() => {
+                                        option.action();
+                                        toggleAttachMenu();
+                                    }}
+                                >
+                                    <View style={{
+                                        alignItems: 'center',
+                                        gap: 10
+                                    }}>
+                                        <View style={{
+                                            width: BUTTON_SIZE,
+                                            height: BUTTON_SIZE,
+                                            borderRadius: BUTTON_SIZE / 2,
+                                            backgroundColor: isDark 
+                                                ? `${option.color}20` 
+                                                : `${option.color}15`,
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            borderWidth: 1,
+                                            borderColor: `${option.color}30`
+                                        }}>
+                                            <Ionicons 
+                                                name={option.icon} 
+                                                size={26}
+                                                color={option.color}
+                                                style={{ opacity: 0.9 }}
+                                            />
+                                        </View>
+                                        <Text style={{
+                                            color: isDark 
+                                                ? 'rgba(255,255,255,0.9)' 
+                                                : 'rgba(0,0,0,0.9)',
+                                            fontSize: 13,
+                                            fontWeight: '500'
+                                        }}>
+                                            {option.label}
+                                        </Text>
+                                    </View>
+                                </AnimatedPressable>
+                            ))}
+                        </View>
+
+                        {/* Row 2 */}
+                        <View style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            {row2.map((option, index) => (
+                                <AnimatedPressable
+                                    key={option.id}
+                                    style={[{
+                                        opacity: optionsAnim[index + 3],
+                                        transform: [{
+                                            scale: optionsAnim[index + 3].interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [0.8, 1]
+                                            })
+                                        }]
+                                    }]}
+                                    onPress={() => {
+                                        option.action();
+                                        toggleAttachMenu();
+                                    }}
+                                >
+                                    <View style={{
+                                        alignItems: 'center',
+                                        gap: 10
+                                    }}>
+                                        <View style={{
+                                            width: BUTTON_SIZE,
+                                            height: BUTTON_SIZE,
+                                            borderRadius: BUTTON_SIZE / 2,
+                                            backgroundColor: isDark 
+                                                ? `${option.color}20` 
+                                                : `${option.color}15`,
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            borderWidth: 1,
+                                            borderColor: `${option.color}30`
+                                        }}>
+                                            <Ionicons 
+                                                name={option.icon} 
+                                                size={26}
+                                                color={option.color}
+                                                style={{ opacity: 0.9 }}
+                                            />
+                                        </View>
+                                        <Text style={{
+                                            color: isDark 
+                                                ? 'rgba(255,255,255,0.9)' 
+                                                : 'rgba(0,0,0,0.9)',
+                                            fontSize: 13,
+                                            fontWeight: '500'
+                                        }}>
+                                            {option.label}
+                                        </Text>
+                                    </View>
+                                </AnimatedPressable>
+                            ))}
+                        </View>
+                    </View>
+                </Animated.View>
+            </>
+        );
     };
 
     if (isLoading) {
@@ -309,15 +597,10 @@ export default function MessageScreen() {
 
     return (
         <>
-            {/* Custom Header */}
-            <Stack.Screen
-                options={{
-                    headerShown: false // Hide default header
-                }}
-            />
-
+            <Stack.Screen options={{ headerShown: false }} />
+            
             <SafeAreaView style={{ flex: 1, backgroundColor }}>
-                {/* Custom Header */}
+                {/* Header */}
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -444,11 +727,11 @@ export default function MessageScreen() {
                     </View>
                 </View>
 
-                {/* Wrap content dalam KeyboardAvoidingView */}
+                {/* Main Content */}
                 <KeyboardAvoidingView 
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // Updated offset
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
                     <View style={{ flex: 1 }}>
                         {/* Chat Messages */}
@@ -470,22 +753,16 @@ export default function MessageScreen() {
                                 justifyContent: chatHistory.length === 0 ? 'center' : 'flex-start'
                             }}
                             showsVerticalScrollIndicator={false}
-                            onContentSizeChange={handleContentSizeChange}
-                            onLayout={handleContentSizeChange}
-                            maintainVisibleContentPosition={{
-                                minIndexForVisible: 0,
-                                autoscrollToTopThreshold: 10
+                            onContentSizeChange={() => {
+                                if (isKeyboardVisible) {
+                                    flatListRef.current?.scrollToEnd({ animated: true });
+                                }
                             }}
-                            ListEmptyComponent={() => (
-                                <View style={{ 
-                                    flex: 1, 
-                                    justifyContent: 'center', 
-                                    alignItems: 'center',
-                                    opacity: 0.5
-                                }}>
-                                    <Text style={{ color: textColor }}>No messages yet</Text>
-                                </View>
-                            )}
+                            onLayout={() => {
+                                if (isKeyboardVisible) {
+                                    flatListRef.current?.scrollToEnd({ animated: true });
+                                }
+                            }}
                         />
 
                         {/* Message Input Container */}
@@ -493,300 +770,71 @@ export default function MessageScreen() {
                             flexDirection: 'row',
                             alignItems: 'flex-end',
                             padding: 16,
-                            paddingBottom: Platform.OS === 'android' ? (isKeyboardVisible ? 12 : 20) : 20,
+                            paddingBottom: Platform.OS === 'ios' ? 16 : 16,
                             gap: 8,
                             borderTopWidth: 1,
-                            borderTopColor: isDark ? '#ffffff15' : '#00000010',
-                            backgroundColor: backgroundColor
+                            borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                            backgroundColor: isDark ? '#121212' : '#f8f8f8'
                         }}>
-                            {/* Attachment Button & Menu */}
-                            <View>
-                                <Pressable 
-                                    onPress={toggleAttachMenu}
-                                    style={({ pressed }) => ({
-                                        opacity: pressed ? 0.7 : 1,
-                                        padding: 10,
-                                        backgroundColor: isDark ? '#ffffff15' : '#00000008',
-                                        borderRadius: 12,
-                                        justifyContent: 'center',
-                                        alignItems: 'center'
-                                    })}
-                                >
-                                    <Ionicons 
-                                        name="add-circle-outline" 
-                                        size={22} 
-                                        color={isDark ? '#ffffff90' : '#00000090'} 
-                                    />
-                                </Pressable>
-
-                                {/* Popup Menu */}
-                                {showAttachMenu && (
-                                    <>
-                                        {/* Overlay dengan blur effect */}
-                                        <Animated.View 
-                                            style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                bottom: 0,
-                                                backgroundColor: isDark ? '#00000080' : '#00000040',
-                                                opacity: attachMenuAnim,
-                                            }}
-                                        >
-                                            <Pressable 
-                                                style={{ flex: 1 }}
-                                                onPress={toggleAttachMenu}
-                                            />
-                                        </Animated.View>
-
-                                        <Animated.View style={{
-                                            position: 'absolute',
-                                            bottom: 80,
-                                            left: 16,
-                                            right: 16,
-                                            backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-                                            borderRadius: 24,
-                                            padding: 20,
-                                            gap: 16,
-                                            shadowColor: isDark ? '#000' : '#666',
-                                            shadowOffset: {
-                                                width: 0,
-                                                height: 8,
-                                            },
-                                            shadowOpacity: isDark ? 0.5 : 0.2,
-                                            shadowRadius: 16,
-                                            elevation: 12,
-                                            transform: [
-                                                { 
-                                                    translateY: attachMenuAnim.interpolate({
-                                                        inputRange: [0, 1],
-                                                        outputRange: [100, 0]
-                                                    })
-                                                },
-                                                {
-                                                    scale: attachMenuAnim.interpolate({
-                                                        inputRange: [0, 1],
-                                                        outputRange: [0.8, 1]
-                                                    })
-                                                }
-                                            ],
-                                            opacity: attachMenuAnim
-                                        }}>
-                                            {/* Title */}
-                                            <Text style={{
-                                                fontSize: 16,
-                                                fontWeight: '600',
-                                                color: isDark ? '#ffffff' : '#000000',
-                                                opacity: 0.9,
-                                                marginBottom: 4
-                                            }}>
-                                                Share Content
-                                            </Text>
-
-                                            {/* Menu Grid */}
-                                            <View style={{
-                                                flexDirection: 'row',
-                                                justifyContent: 'space-between',
-                                                gap: 12
-                                            }}>
-                                                {/* Camera Button */}
-                                                <Pressable 
-                                                    onPress={() => {
-                                                        setActiveButton('camera');
-                                                        setTimeout(() => {
-                                                            console.log('Open camera');
-                                                            toggleAttachMenu();
-                                                            setActiveButton(null);
-                                                        }, 200);
-                                                    }}
-                                                    onPressIn={() => setActiveButton('camera')}
-                                                    onPressOut={() => setActiveButton(null)}
-                                                    style={({ pressed }) => ({
-                                                        flex: 1,
-                                                        opacity: pressed ? 0.8 : 1,
-                                                        transform: [{ scale: activeButton === 'camera' ? 0.95 : 1 }],
-                                                    })}
-                                                >
-                                                    <Animated.View style={{
-                                                        padding: 16,
-                                                        backgroundColor: isDark 
-                                                            ? activeButton === 'camera' ? '#ffffff18' : '#ffffff10'
-                                                            : activeButton === 'camera' ? '#00000012' : '#00000008',
-                                                        borderRadius: 20,
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        height: 100,
-                                                        borderWidth: 1,
-                                                        borderColor: isDark ? '#ffffff15' : '#00000010',
-                                                    }}>
-                                                        <View style={{
-                                                            backgroundColor: isDark ? '#2196F3' : '#2196F3',
-                                                            padding: 12,
-                                                            borderRadius: 16,
-                                                            marginBottom: 12
-                                                        }}>
-                                                            <Ionicons 
-                                                                name="camera-outline" 
-                                                                size={26} 
-                                                                color="#fff"
-                                                            />
-                                                        </View>
-                                                        <Text style={{
-                                                            color: isDark ? '#ffffff' : '#000000',
-                                                            fontSize: 13,
-                                                            fontWeight: '600',
-                                                            opacity: 0.9
-                                                        }}>
-                                                            Camera
-                                                        </Text>
-                                                    </Animated.View>
-                                                </Pressable>
-
-                                                {/* Photo Library Button */}
-                                                <Pressable 
-                                                    onPress={() => {
-                                                        setActiveButton('photos');
-                                                        setTimeout(() => {
-                                                            console.log('Open photos');
-                                                            toggleAttachMenu();
-                                                            setActiveButton(null);
-                                                        }, 200);
-                                                    }}
-                                                    onPressIn={() => setActiveButton('photos')}
-                                                    onPressOut={() => setActiveButton(null)}
-                                                    style={({ pressed }) => ({
-                                                        flex: 1,
-                                                        opacity: pressed ? 0.8 : 1,
-                                                        transform: [{ scale: activeButton === 'photos' ? 0.95 : 1 }],
-                                                    })}
-                                                >
-                                                    <Animated.View style={{
-                                                        padding: 16,
-                                                        backgroundColor: isDark 
-                                                            ? activeButton === 'photos' ? '#ffffff18' : '#ffffff10'
-                                                            : activeButton === 'photos' ? '#00000012' : '#00000008',
-                                                        borderRadius: 20,
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        height: 100,
-                                                        borderWidth: 1,
-                                                        borderColor: isDark ? '#ffffff15' : '#00000010',
-                                                    }}>
-                                                        <View style={{
-                                                            backgroundColor: '#FF4081',
-                                                            padding: 12,
-                                                            borderRadius: 16,
-                                                            marginBottom: 12
-                                                        }}>
-                                                            <Ionicons 
-                                                                name="images-outline" 
-                                                                size={26} 
-                                                                color="#fff"
-                                                            />
-                                                        </View>
-                                                        <Text style={{
-                                                            color: isDark ? '#ffffff' : '#000000',
-                                                            fontSize: 13,
-                                                            fontWeight: '600',
-                                                            opacity: 0.9
-                                                        }}>
-                                                            Photos
-                                                        </Text>
-                                                    </Animated.View>
-                                                </Pressable>
-
-                                                {/* File Button */}
-                                                <Pressable 
-                                                    onPress={() => {
-                                                        setActiveButton('files');
-                                                        setTimeout(() => {
-                                                            console.log('Open files');
-                                                            toggleAttachMenu();
-                                                            setActiveButton(null);
-                                                        }, 200);
-                                                    }}
-                                                    onPressIn={() => setActiveButton('files')}
-                                                    onPressOut={() => setActiveButton(null)}
-                                                    style={({ pressed }) => ({
-                                                        flex: 1,
-                                                        opacity: pressed ? 0.8 : 1,
-                                                        transform: [{ scale: activeButton === 'files' ? 0.95 : 1 }],
-                                                    })}
-                                                >
-                                                    <Animated.View style={{
-                                                        padding: 16,
-                                                        backgroundColor: isDark 
-                                                            ? activeButton === 'files' ? '#ffffff18' : '#ffffff10'
-                                                            : activeButton === 'files' ? '#00000012' : '#00000008',
-                                                        borderRadius: 20,
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        height: 100,
-                                                        borderWidth: 1,
-                                                        borderColor: isDark ? '#ffffff15' : '#00000010',
-                                                    }}>
-                                                        <View style={{
-                                                            backgroundColor: '#4CAF50',
-                                                            padding: 12,
-                                                            borderRadius: 16,
-                                                            marginBottom: 12
-                                                        }}>
-                                                            <Ionicons 
-                                                                name="document-outline" 
-                                                                size={26} 
-                                                                color="#fff"
-                                                            />
-                                                        </View>
-                                                        <Text style={{
-                                                            color: isDark ? '#ffffff' : '#000000',
-                                                            fontSize: 13,
-                                                            fontWeight: '600',
-                                                            opacity: 0.9
-                                                        }}>
-                                                            Files
-                                                        </Text>
-                                                    </Animated.View>
-                                                </Pressable>
-                                            </View>
-                                        </Animated.View>
-                                    </>
-                                )}
-                            </View>
+                            {/* Attachment Button */}
+                            <Pressable 
+                                onPress={toggleAttachMenu}
+                                style={({ pressed }) => ({
+                                    opacity: pressed ? 0.7 : 1,
+                                    padding: 10,
+                                    backgroundColor: isDark 
+                                        ? 'rgba(255,255,255,0.05)' 
+                                        : 'rgba(0,0,0,0.03)',
+                                    borderRadius: 12,
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                })}
+                            >
+                                <Ionicons 
+                                    name="add-circle-outline" 
+                                    size={22} 
+                                    color={isDark 
+                                        ? 'rgba(255,255,255,0.8)' 
+                                        : 'rgba(0,0,0,0.8)'
+                                    } 
+                                />
+                            </Pressable>
 
                             {/* Message Input */}
                             <View style={{
                                 flex: 1,
                                 flexDirection: 'row',
                                 alignItems: 'flex-end',
-                                backgroundColor: isDark ? '#ffffff15' : '#00000008',
-                                borderRadius: 16,
+                                backgroundColor: isDark 
+                                    ? 'rgba(255,255,255,0.05)' 
+                                    : 'rgba(0,0,0,0.03)',
+                                borderRadius: 20,
                                 paddingHorizontal: 16,
-                                paddingVertical: 8,
-                                minHeight: 44,
+                                paddingVertical: 10,
+                                minHeight: 48,
                                 maxHeight: 120
                             }}>
                                 <TextInput
                                     value={message}
                                     onChangeText={setMessage}
                                     placeholder="Type a message..."
-                                    placeholderTextColor={isDark ? '#ffffff50' : '#00000050'}
+                                    placeholderTextColor={isDark 
+                                        ? 'rgba(255,255,255,0.4)' 
+                                        : 'rgba(0,0,0,0.4)'
+                                    }
                                     style={{
                                         flex: 1,
-                                        color: isDark ? '#ffffffee' : '#000000ee',
+                                        color: isDark 
+                                            ? 'rgba(255,255,255,0.9)' 
+                                            : 'rgba(0,0,0,0.9)',
                                         fontSize: 16,
                                         maxHeight: 100,
                                         paddingVertical: 4,
                                         textAlignVertical: 'center',
-                                        lineHeight: 20
+                                        lineHeight: 22
                                     }}
                                     multiline
                                     maxLength={1000}
-                                    onContentSizeChange={() => {
-                                        if (isKeyboardVisible) {
-                                            flatListRef.current?.scrollToEnd({ animated: true });
-                                        }
-                                    }}
                                 />
                             </View>
 
@@ -801,17 +849,19 @@ export default function MessageScreen() {
                                     onPress={() => console.log('Start recording')}
                                     style={({ pressed }) => ({
                                         opacity: pressed ? 0.7 : 1,
-                                        padding: 10,
-                                        backgroundColor: isDark ? '#ffffff15' : '#00000008',
-                                        borderRadius: 12,
+                                        padding: 12,  // Lebih besar
+                                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+                                        borderRadius: 16,
                                         justifyContent: 'center',
-                                        alignItems: 'center'
+                                        alignItems: 'center',
+                                        borderWidth: 1,
+                                        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
                                     })}
                                 >
                                     <Ionicons 
                                         name="mic-outline" 
-                                        size={22} 
-                                        color={isDark ? '#ffffff90' : '#00000090'} 
+                                        size={24}  // Sedikit lebih besar
+                                        color={isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)'} 
                                     />
                                 </Pressable>
 
@@ -844,6 +894,9 @@ export default function MessageScreen() {
                         </View>
                     </View>
                 </KeyboardAvoidingView>
+
+                {/* Attachment Menu - Pindah ke luar KeyboardAvoidingView */}
+                {renderAttachmentMenu()}
             </SafeAreaView>
         </>
     );
