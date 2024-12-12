@@ -32,6 +32,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             await AsyncStorage.setItem('theme', newTheme ? 'dark' : 'light');
         } catch (error) {
             console.error('Error saving theme:', error);
+            setIsDark(false);
         }
     };
 
