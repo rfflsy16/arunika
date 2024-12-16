@@ -1,8 +1,11 @@
 import { View, Text, FlatList, Dimensions, StyleSheet, TouchableOpacity } from "react-native";
-import { Video, ResizeMode } from 'expo-av';
-import { useState, useRef } from 'react';
+import { Video } from 'expo-av';
+import { useState, useRef, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeepAwake } from 'expo-keep-awake';
+import { ResizeMode } from 'expo-av';
+import { useIsFocused } from '@react-navigation/native';
 
 const { width, height: screenHeight } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 49; // Default iOS tab bar height
@@ -11,66 +14,19 @@ const TAB_BAR_HEIGHT = 49; // Default iOS tab bar height
 const reelsData = [
     {
         id: '1',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-drifting-car-during-a-race-753-large.mp4',
-        caption: 'Drift king in action 🏎️💨',
-        likes: '45.2k',
+        uri: 'https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-576p.mp4',
+        caption: 'Test Video 🎥',
+        likes: '105.2k',
         comments: '2.3k'
-    },
-    {
-        id: '2',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-race-car-drifting-around-a-corner-753-large.mp4',
-        caption: 'Perfect angle drift 🔥',
-        likes: '32.1k',
-        comments: '1.8k'
-    },
-    {
-        id: '3',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-professional-racing-car-drifting-1184-large.mp4',
-        caption: 'Smoke show 💨',
-        likes: '28.9k',
-        comments: '1.5k'
-    },
-    {
-        id: '4',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-sports-car-drifting-at-sunset-34537-large.mp4',
-        caption: 'Sunset drift vibes 🌅',
-        likes: '50.3k',
-        comments: '3.1k'
-    },
-    {
-        id: '5',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-race-car-burning-rubber-752-large.mp4',
-        caption: 'Burning rubber 🔥🏎️',
-        likes: '38.7k',
-        comments: '2.4k'
-    },
-    {
-        id: '6',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-car-driving-on-a-road-curved-hills-35898-large.mp4',
-        caption: 'Mountain pass touge 🗻',
-        likes: '42.5k',
-        comments: '2.8k'
-    },
-    {
-        id: '7',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-red-sports-car-driving-fast-around-a-corner-34544-large.mp4',
-        caption: 'Red beast drifting 🚗💨',
-        likes: '35.9k',
-        comments: '2.1k'
-    },
-    {
-        id: '8',
-        uri: 'https://assets.mixkit.co/videos/preview/mixkit-driving-through-a-city-at-night-1740-large.mp4',
-        caption: 'Night city drift 🌃',
-        likes: '47.8k',
-        comments: '3.3k'
     }
 ];
 
 export default function ExploreScreen() {
+    useKeepAwake();
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef(null);
     const insets = useSafeAreaInsets();
+    const isFocused = useIsFocused();
 
     // Hitung tinggi video container
     const videoHeight = screenHeight - TAB_BAR_HEIGHT - insets.bottom;
@@ -82,9 +38,18 @@ export default function ExploreScreen() {
                     source={{ uri: item.uri }}
                     style={styles.video}
                     resizeMode={ResizeMode.COVER}
-                    shouldPlay={index === activeIndex}
+                    shouldPlay={index === activeIndex && isFocused}
                     isLooping
                     isMuted={false}
+                    onError={(error: unknown) => {
+                        console.log("Error loading video:", error);
+                    }}
+                    onLoadStart={() => {
+                        console.log("Video mulai loading");
+                    }}
+                    onLoad={() => {
+                        console.log("Video berhasil load");
+                    }}
                 />
                 
                 <View style={styles.overlay}>
@@ -126,7 +91,7 @@ export default function ExploreScreen() {
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 pagingEnabled
-                vertical
+                // vertical
                 showsVerticalScrollIndicator={false}
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={{
@@ -137,7 +102,7 @@ export default function ExploreScreen() {
             />
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
-                <TouchableOpacity style={styles.searchButton}>
+                <TouchableOpacity style={styles.searchButton}> 
                     <Ionicons name="search" size={20} color="#fff" />
                 </TouchableOpacity>
             </SafeAreaView>

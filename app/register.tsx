@@ -28,7 +28,7 @@ export default function RegisterScreen() {
     const isDark = useColorScheme() === 'dark';
 
     const handleRegister = () => {
-        router.replace('/(tabs)');
+        router.replace('/login');
     };
 
     return (
