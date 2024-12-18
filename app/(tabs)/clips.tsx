@@ -1,14 +1,15 @@
 import { View, Text, FlatList, Dimensions, StyleSheet, TouchableOpacity } from "react-native";
 import { Video } from 'expo-av';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import { ResizeMode } from 'expo-av';
 import { useIsFocused } from '@react-navigation/native';
+import { router } from "expo-router";
 
 const { width, height: screenHeight } = Dimensions.get('window');
-const TAB_BAR_HEIGHT = 49; // Default iOS tab bar height
+const TAB_BAR_HEIGHT = 49; 
 
 // Data dummy utk reels
 const reelsData = [
@@ -21,7 +22,7 @@ const reelsData = [
     }
 ];
 
-export default function ExploreScreen() {
+export default function ClipsScreen() {
     useKeepAwake();
     const [activeIndex, setActiveIndex] = useState(0);
     const flatListRef = useRef(null);
@@ -103,7 +104,7 @@ export default function ExploreScreen() {
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <TouchableOpacity style={styles.searchButton}> 
-                    <Ionicons name="search" size={20} color="#fff" />
+                    <Ionicons name="search" size={20} color="#fff" onPress={() => router.push('/search')}/>
                 </TouchableOpacity>
             </SafeAreaView>
         </View>

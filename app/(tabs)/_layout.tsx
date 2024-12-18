@@ -52,6 +52,15 @@ export default function TabLayout() {
                     ),
                 }}
             />
+            {/* <Tabs.Screen
+                name="search"
+                options={{
+                    title: 'Search',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="search" size={size} color={color} />
+                    ),
+                }}
+            /> */}
             <Tabs.Screen
                 name="arunika"
                 options={{
@@ -98,7 +107,7 @@ export default function TabLayout() {
                     ),
                 }}
             />
-            <Tabs.Screen
+            {/* <Tabs.Screen
                 name="explore"
                 options={{
                     title: 'Explore',
@@ -106,6 +115,15 @@ export default function TabLayout() {
                         <Ionicons name="compass" size={size} color={color} />
                     ),
                 }}
+            /> */}
+             <Tabs.Screen
+                name='clips'
+                options={{
+                    title: 'Clips',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="compass" size={size} color={color} />
+                    ),
+                }} 
             />
             <Tabs.Screen
                 name="profile"
@@ -116,6 +134,7 @@ export default function TabLayout() {
                     ),
                 }}
             />
+           
         </Tabs>
     );
 }

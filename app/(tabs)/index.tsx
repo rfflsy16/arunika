@@ -45,6 +45,15 @@ const CHATS = [
         time: 'Yesterday',
         unreadCount: 1,
         isOnline: true
+    },
+    {
+        id: '4',
+        name: 'Smart AI',
+        avatar: 'https://images.unsplash.com/photo-1677442136019-21780ecad995',
+        lastMessage: 'Hi There!!',
+        time: 'Yesterday',
+        unreadCount: 1,
+        isOnline: true
     }
 ];
 
@@ -61,7 +70,6 @@ const NOTIFICATIONS = [
         description: 'Alex Thompson commented on your project',
         time: '5m ago'
     },
-    // ... tambah dummy data lain sesuai kebutuhan
 ];
 
 type ChatItemProps = {
@@ -380,7 +388,7 @@ export default function ChatScreen() {
                     <TextInput 
                         value={search}
                         onChangeText={setSearch}
-                        placeholder="Search messages..."
+                        placeholder="Search Or Ask AI"
                         placeholderTextColor={textColor + '60'}
                         style={{
                             flex: 1,
