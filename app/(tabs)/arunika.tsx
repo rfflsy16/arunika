@@ -244,7 +244,28 @@ export default function Arunika() {
   );
 }
 
-const PostCard = ({ post, isDark, arunikaColor }) => {
+interface PostCardProps {
+  post: {
+    id: number;
+    username: string;
+    avatar: string;
+    content: string;
+    image: string;
+    likes: number;
+    comments: number;
+    timeAgo: string;
+    reactions: {
+      like: number;
+      love: number;
+      haha: number;
+      wow: number;
+    };
+  };
+  isDark: boolean;
+  arunikaColor: string;
+}
+
+const PostCard = ({ post, isDark, arunikaColor }: PostCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const { width } = Dimensions.get("window");
@@ -261,6 +282,24 @@ const PostCard = ({ post, isDark, arunikaColor }) => {
   };
 
   const styles = StyleSheet.create({
+    postCard: {
+      backgroundColor: isDark ? "#1E1E1E" : "#fff",
+      marginHorizontal: 16,
+      marginVertical: 8,
+      borderRadius: 20,
+      overflow: "hidden",
+      ...Platform.select({
+        android: {
+          elevation: 4,
+        },
+        ios: {
+          shadowColor: isDark ? "#000" : "#666",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        },
+      }),
+    },
     postHeader: {
       flexDirection: "row",
       alignItems: "center",
