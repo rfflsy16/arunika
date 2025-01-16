@@ -158,6 +158,11 @@ export default function Arunika() {
       padding: 2,
       justifyContent: "center",
       alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
     },
     storyAvatar: {
       width: "100%",
@@ -167,7 +172,7 @@ export default function Arunika() {
     storyUsername: {
       fontSize: 12,
       marginTop: 4,
-      color: isDark ? "#999" : "#666",
+      color: isDark ? "#fff" : "#666",
       textAlign: "center",
     },
     postsSection: {
@@ -179,17 +184,11 @@ export default function Arunika() {
       marginVertical: 8,
       borderRadius: 20,
       overflow: "hidden",
-      ...Platform.select({
-        android: {
-          elevation: 4,
-        },
-        ios: {
-          shadowColor: isDark ? "#000" : "#666",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-      }),
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
     },
   });
 
@@ -288,17 +287,11 @@ const PostCard = ({ post, isDark, arunikaColor }: PostCardProps) => {
       marginVertical: 8,
       borderRadius: 20,
       overflow: "hidden",
-      ...Platform.select({
-        android: {
-          elevation: 4,
-        },
-        ios: {
-          shadowColor: isDark ? "#000" : "#666",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-      }),
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
     },
     postHeader: {
       flexDirection: "row",
@@ -362,7 +355,7 @@ const PostCard = ({ post, isDark, arunikaColor }: PostCardProps) => {
       paddingVertical: 8,
       paddingHorizontal: 12,
       borderRadius: 20,
-      backgroundColor: isDark ? "#333" : "#f5f5f5",
+      backgroundColor: isDark ? "#444" : "#f5f5f5",
     },
     actionText: {
       marginLeft: 6,
@@ -393,17 +386,11 @@ const PostCard = ({ post, isDark, arunikaColor }: PostCardProps) => {
       borderRadius: 25,
       paddingHorizontal: 16,
       paddingVertical: 8,
-      ...Platform.select({
-        ios: {
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        android: {
-          elevation: 2,
-        },
-      }),
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
     },
     input: {
       flex: 1,
