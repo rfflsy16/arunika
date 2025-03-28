@@ -37,7 +37,7 @@ function AppContent() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="search" options={{ headerShown: false }} />
-        <Stack.Screen name="messege" options={{ headerShown: false }} />
+        <Stack.Screen name="message" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={isDark ? "light" : "dark"} />
