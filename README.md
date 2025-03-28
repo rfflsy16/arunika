@@ -53,8 +53,9 @@ bunx expo run:ios
 
 # For Android
 bunx expo run:android
-
 ```
+
+```bash
 ## 📁 Project Structure
 arunika/
 ├── app/                    # Main application screens (Expo Router)
@@ -85,6 +86,7 @@ arunika/
 │   └── useThemeColor.ts    # Hook for theme colors
 └── README.md               # Project documentation
 ```
+
 
 ## 🔄 App Flow
 ### Authentication Flow
