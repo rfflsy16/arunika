@@ -54,6 +54,7 @@ bunx expo run:ios
 # For Android
 bunx expo run:android
 
+```
 ## 📁 Project Structure
 arunika/
 ├── app/                    # Main application screens (Expo Router)
