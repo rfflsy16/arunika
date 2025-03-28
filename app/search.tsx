@@ -1,8 +1,9 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useState } from 'react';
 import { router } from "expo-router";
+
 
 export default function SearchScreen() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -20,60 +21,65 @@ export default function SearchScreen() {
     ];
 
     return (
-        <View style={[styles.container, { backgroundColor }]}>
-            {/* Header dgn custom back button */}
-            <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => router.back()}
-                >
-                    <Ionicons name="arrow-back" size={24} color={textColor} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: textColor }]}>Search</Text>
-            </View>
-
-            {/* Search Bar yg lebih keren */}
-            <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-                <TextInput 
-                    style={[styles.searchInput, { color: textColor }]}
-                    placeholder="Cari video drift keren..." 
-                    placeholderTextColor="#666"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
-                {searchQuery.length > 0 && (
+        <SafeAreaView style={[styles.container, { backgroundColor }]}>
+            <View style={[styles.innerContainer, { backgroundColor }]}>
+                {/* Header dgn custom back button */}
+                <View style={styles.header}>
                     <TouchableOpacity 
-                        style={styles.clearButton}
-                        onPress={() => setSearchQuery('')}
+                        style={styles.backButton} 
+                        onPress={() => router.back()}
                     >
-                        <Ionicons name="close-circle" size={20} color="#666" />
+                        <Ionicons name="arrow-back" size={24} color={textColor} />
                     </TouchableOpacity>
-                )}
-            </View>
+                    <Text style={[styles.headerTitle, { color: textColor }]}>Search</Text>
+                </View>
 
-            {/* Trending Section yg lebih fancy */}
-            <ScrollView style={styles.trendingContainer} showsVerticalScrollIndicator={false}>
-                <Text style={[styles.sectionTitle, { color: textColor }]}>🔥 Trending Now</Text>
-                {trendingTopics.map((topic) => (
-                    <TouchableOpacity 
-                        key={topic.id} 
-                        style={styles.trendingItem}
-                    >
-                        <View>
-                            <Text style={[styles.trendingText, { color: textColor }]}>{topic.title}</Text>
-                            <Text style={styles.viewsText}>{topic.views}</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#666" />
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-        </View>
+                {/* Search Bar yg lebih keren */}
+                <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+                    <TextInput 
+                        style={[styles.searchInput, { color: textColor }]}
+                        placeholder="Cari video drift keren..." 
+                        placeholderTextColor="#666"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity 
+                            style={styles.clearButton}
+                            onPress={() => setSearchQuery('')}
+                        >
+                            <Ionicons name="close-circle" size={20} color="#666" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Trending Section yg lebih fancy */}
+                <ScrollView style={styles.trendingContainer} showsVerticalScrollIndicator={false}>
+                    <Text style={[styles.sectionTitle, { color: textColor }]}>🔥 Trending Now</Text>
+                    {trendingTopics.map((topic) => (
+                        <TouchableOpacity 
+                            key={topic.id} 
+                            style={styles.trendingItem}
+                        >
+                            <View>
+                                <Text style={[styles.trendingText, { color: textColor }]}>{topic.title}</Text>
+                                <Text style={styles.viewsText}>{topic.views}</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#666" />
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+    },
+    innerContainer: {
         flex: 1,
     },
     header: {

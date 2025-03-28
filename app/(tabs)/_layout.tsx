@@ -5,7 +5,7 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Text, View } from 'react-native';
 
-export default function TabLayout() {
+export default function TabsLayout() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     
